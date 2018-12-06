@@ -1,0 +1,68 @@
+#### Machine Learning - Final Project
+##### Loading and cleaning data
+First part of the exercise concerns reading of the data, getting rid of NA's and partition the data into training and testing sets. 
+
+```{r, echo = TRUE, cache = TRUE}
+setwd("C:/Projekter/Data Science specialization/Practical Machine Learning/FinalProject/FinalProject")
+test <- read.csv('pml-testing.csv',header=TRUE, na.strings = c("NA", "#DIV/0!", " "))
+training <- read.csv('pml-training.csv', header = TRUE, na.strings = c("NA", "#DIV/0!", ""))
+CleanTraining <- training[, colSums(is.na(training)) == 0]
+CleanTest <- test[, colSums(is.na(test)) == 0]
+CleanTraining1 <- CleanTraining[, -c(1:7)]
+CleanTest1 <- CleanTest[, -c(1:7)]
+library(caret)
+library(rattle)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+set.seed(12345)
+inTrain <- createDataPartition(CleanTraining1$classe, p=0.70, list=FALSE)
+Train_Data <- CleanTraining1[inTrain,]
+Test_Data <- CleanTraining1[-inTrain,]
+```
+
+In the next part of the assignment, I will test each of three prediction models; Classification Tree, Random Forest and Gradient Boosting Method. For each of the models, I calculate the preiction accuracy, when the model is applied to the Test Data
+
+##### Classification Tree 
+```{r, ClassTree, echo = TRUE, cache = TRUE}
+controlCT <- trainControl(method="cv", number=5)
+model_CT <- train(classe ~ ., data = Train_Data, method = "rpart", trControl = controlCT)
+trainpredCT <- predict(model_CT, newdata = Test_Data)
+confMatrix <- confusionMatrix(Test_Data$classe, trainpredCT)
+confMatrix$overall[[1]]
+```
+
+##### Random Forest
+```{r, RandomForest, echo = TRUE , cache=TRUE}
+controlRF <- trainControl(method="cv", number=5, verboseIter = FALSE)
+modelRF <- train(classe ~ ., data = Train_Data, method = "rf", trControl = controlRF, verbose=FALSE)
+trainpredRF <- predict(modelRF, newdata = Test_Data)
+confMatRF <- confusionMatrix(Test_Data$classe, trainpredRF)
+confMatRF$overall[[1]]
+```
+
+##### GBM Model
+```{r, GBM, echo = TRUE, cache =TRUE}
+controlGBM <- trainControl(method="cv", number=5, verboseIter = FALSE)
+modelGBM <- train(classe~., data = Train_Data, method = "gbm", trControl = controlGBM, verbose=FALSE)
+trainpredGBM <- predict(modelGBM, newdata = Test_Data)
+confMatGBM <- confusionMatrix(Test_Data$classe, trainpredGBM)
+confMatGBM$overall[[1]]
+```
+
+As can be seen from the above model runs, the Random Forest models has the highest accuray, and thus will be used to make the final prediction of exercise movements
+
+#### Final Prediction
+```{r, FinalModel, echo = T}
+FinalPredModel <- predict(modelRF, CleanTest1)
+FinalPredModel
+```
+
+
+
+#### Appendix - Figures
+
+```{r, decision tree, echo = TRUE, cache = TRUE}
+Tree <- rpart(classe ~ . , data = Train_Data, method = "class")
+prp(Tree)
+```
